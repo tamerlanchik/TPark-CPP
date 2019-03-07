@@ -5,11 +5,11 @@
 
 Программа считывает входные данные со стандартного ввода, и печатает результат в стандартный вывод.
 
-Процедура приведения к нижнему регистру должна быть оформлена в виде отдельной функции, которой на вход подается массив строк (который необходимо обработать), количество переданных строк, а также указатель на переменную, в которой необходимо разместить результат - массив уже обработанных строк. 
-В качестве возвращаемого значения функция должна возвращать количество строк, содержащихся в результирующем массиве. 
+Процедура приведения к нижнему регистру должна быть оформлена в виде отдельной функции, которой на вход подается массив строк (который необходимо обработать), количество переданных строк, а также указатель на переменную, в которой необходимо разместить результат - массив уже обработанных строк.
+В качестве возвращаемого значения функция должна возвращать количество строк, содержащихся в результирующем массиве.
 
-Программа должна уметь обрабатывать ошибки - такие как неверные входные данные(отсутствие входных строк) или ошибки выделения памяти и т.п. 
-В случае возникновения ошибки нужно выводить об этом сообщение "[error]" и завершать выполнение программы. 
+Программа должна уметь обрабатывать ошибки - такие как неверные входные данные(отсутствие входных строк) или ошибки выделения памяти и т.п.
+В случае возникновения ошибки нужно выводить об этом сообщение "[error]" и завершать выполнение программы.
 */
 
 #include <stdio.h>
@@ -23,12 +23,14 @@ int main()
 {
 	int strCount = 0;
 	char** strArray = inputStrings(&strCount);
-	if (strArray) {
-		toLower((const char**)strArray, strCount, strArray);
+	if (!strArray) return 0;
+
+	toLower((const char**)strArray, strCount, strArray);
+	if (strArray){
 		for (int i = 0; i < strCount; i++) {
 			printf("%s\n", strArray[i]);
 		}
-		deleteStringArray(strArray, strCount);
+	deleteStringArray(strArray, strCount);
 	}
 	return 0;
 }
@@ -65,7 +67,7 @@ char* inputString(int* isEOF) {
 			size_t newBufferSize = buf.spaceSize ? buf.spaceSize*strSizeFactor : 2;
 			char* temp = (char*)realloc(buf.str, newBufferSize);
 			if (!temp) {
-				fprintf(stderr, "Error realloc s\n");
+				fprintf(stderr, "[error]");
 				free(buf.str);
 				return NULL;
 			}
@@ -79,7 +81,7 @@ char* inputString(int* isEOF) {
 		if (buf.dataSize < buf.spaceSize) {
 			char* temp = (char*)realloc(buf.str, buf.dataSize);
 			if (!temp) {
-				fprintf(stderr, "Error chunk s\n");
+				fprintf(stderr, "[error]");
 			}
 			else {
 				buf.str = temp;
@@ -101,13 +103,13 @@ char** inputStrings(int* sCount) {
 	const unsigned int strSizeFactor = 2;
 	int isEOF = 0;
 	char* str = NULL;
-	while (!isEOF && ( str = inputString(&isEOF), str) ) {
-		if ( (sBuf.dataSize + 1) > sBuf.spaceSize ) {
+	while (!isEOF && (str = inputString(&isEOF), str)) {
+		if ((sBuf.dataSize + 1) > sBuf.spaceSize) {
 			size_t newBufferSize = sBuf.dataSize ? sBuf.dataSize*strSizeFactor : 1;
 
 			char** temp = (char**)realloc(sBuf.strArray, newBufferSize * sizeof(char*));
 			if (!temp) {
-				fprintf(stderr, "Error realloc sArray");
+				fprintf(stderr, "[error]");
 				str = NULL;
 				break;
 			}
@@ -120,13 +122,13 @@ char** inputStrings(int* sCount) {
 	}
 	if (isEOF == 0 && !str) {	//произошла ошибка
 		deleteStringArray(sBuf.strArray, sBuf.dataSize);
-		sBuf.strArray = NULL;
-		sBuf.dataSize = 0;
+		return NULL;
+		*sCount = 0;
 	}
 	if (sBuf.dataSize < sBuf.spaceSize) {
-		char** temp = (char**)realloc(sBuf.strArray, sBuf.dataSize);
+		char** temp = (char**)realloc(sBuf.strArray, sBuf.dataSize*sizeof(char*));
 		if (!temp) {
-			fprintf(stderr, "Error chunk strArray\n");
+			fprintf(stderr, "[error]");
 		}
 		else {
 			sBuf.strArray = temp;
@@ -134,7 +136,7 @@ char** inputStrings(int* sCount) {
 	}
 	*sCount = sBuf.dataSize;
 	return sBuf.strArray;
-	
+
 }
 
 void deleteStringArray(char** sArray, int strCount) {
