@@ -74,10 +74,20 @@ char* inputString(int* isEOF) {
 		}
 		buf.str[buf.dataSize++] = c;
 	}
-	if(buf.str)
-		buf.str[buf.dataSize] = '\0';
+	if (buf.str) {
+		buf.str[buf.dataSize++] = '\0';
+		if (buf.dataSize < buf.spaceSize) {
+			char* temp = (char*)realloc(buf.str, buf.dataSize);
+			if (!temp) {
+				fprintf(stderr, "Error chunk s\n");
+			}
+			else {
+				buf.str = temp;
+			}
+		}
+	}
 	if (c == EOF) {
-		*isEOF = 1;
+		*isEOF = !(*isEOF);
 	}
 	return buf.str;
 }
@@ -110,17 +120,17 @@ char** inputStrings(int* sCount) {
 	}
 	if (isEOF == 0 && !str) {	//произошла ошибка
 		deleteStringArray(sBuf.strArray, sBuf.dataSize);
-		/*if (sBuf.strArray) {
-			for (int i = 0; i < sBuf.dataSize; i++) {
-				free(sBuf.strArray[i]);
-			}
-			free(sBuf.strArray);
-		}*/
 		sBuf.strArray = NULL;
 		sBuf.dataSize = 0;
 	}
-	if (str) {
-		free(str);
+	if (sBuf.dataSize < sBuf.spaceSize) {
+		char** temp = (char**)realloc(sBuf.strArray, sBuf.dataSize);
+		if (!temp) {
+			fprintf(stderr, "Error chunk strArray\n");
+		}
+		else {
+			sBuf.strArray = temp;
+		}
 	}
 	*sCount = sBuf.dataSize;
 	return sBuf.strArray;
