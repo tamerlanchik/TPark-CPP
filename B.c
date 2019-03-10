@@ -34,107 +34,115 @@
 #include <string.h>
 
 //-------Dynamic String implementation-------
-typedef struct DynamicString_template {
+typedef struct Dynamic_String_template {
 	char* data;
 	unsigned int spaceSize;
 	unsigned int dataSize;
 } DynString;
-DynString* initDynamicString(void);
-int append(DynString* const buf, const char data);
+DynString* init_dynamic_string(void);
+int append_string(DynString* const buf, const char data);
 char pop(DynString* const buf);
-int truncDynString(DynString* const dyn_array);
-int freeDynamicString(DynString* const stack);
+int trunc_dynamic_string(DynString* const dynamic_array);
+int free_dynamic_string(DynString* const stack);
 
 //------Dynamic Dictionary implementation----
-typedef struct DynamicDict_template {
+typedef struct Dynamic_Dict_template {
 	char** str;
 	int* values;
 	unsigned int spaceSize;
 	unsigned int dataSize;
 } DynDict;
-DynDict* initDynamicDict(void);
-int appendDict(DynDict* const buf, char* const str, const int val);
-int freeDynamicDict(DynDict* const dict);
+DynDict* init_dynamic_dict(void);
+int append_dict(DynDict* const buf, char* const str, const int val);
+int free_dynamic_dict(DynDict* const dict);
 
 //------Input--------------------------------
-char* getNextInputString(FILE* const flow, int* isEOF);
+char* get_next_input_string(FILE* const flow, int* is_eof);
 
 //-------Problem solving functions------
-int eatChars(int index, const int maxIndex, const char* const s, const char food);
-int parseString(const char* const s, DynDict** const varList);
-int parseManifestation(const char* const s, const int indexEq, char** variableName, int* variableValue);
-int parseExpression(const char* const s, const DynDict* const varList, DynString** backPolandNotation);
-int calculateExpresson(DynString* const s);
+int eat_chars(int index, const int border_index, const char* const s, const char food);
+
+int parse_string(const char* const s, DynDict** const var_list);
+
+int parse_variable_definition(const char* const s, const int index_equal, 
+								char** variable_name, int* variableValue);
+
+int parse_expression(const char* const s, const DynDict* const var_list, 
+						DynString** back_poland_notation);
+
+int calculate_expression(DynString* const s);
 
 //-----Static string functions------------
-int isLetter(const char c);
-int isNumber(const char c);
-int findInArray(const char* const what, const char** where, const int whereLen);
+int is_letter(const char c);
 
-const char* boolConstants[] = { "False", "True" };
-const char errorMessage[] = "[error]";
-enum stateCodes { ERROR = -1, OK };
-const char input_file_name[] = "input.txt";
+int is_number(const char c);
+
+int find_string_in_array(const char* const what, const char** where, const int where_len);
+//----------------------------------------
+
+const char* BOOL_CONSTANTS[] = { "False", "True" };
+const char ERROR_MESSAGE[] = "[error]";
+enum status_codes { ERROR = -1, OK };
+const char INPUT_FILE_NAME[] = "input.txt";
 
 #define PROD	//переключатель режима ввода (по условию задачи не требуется)
 
 int main(void)
 {
 	FILE* f = stdin;
-#ifndef PROD
-	f = fopen(input_file_name, "r");
+
+	#ifndef PROD
+	f = fopen(INPUT_FILE_NAME, "r");
 	if (!f) {
-		printf("%s", errorMessage);
+		printf("%s", ERROR_MESSAGE);
 		return 0;
 	}
-#endif
-	int isEOF = 0;
-	char* str = NULL;
-	DynDict* varList = initDynamicDict();
-	int isCrashFlag = OK;
+	#endif
 
-	while (!isEOF && (str = getNextInputString(f,&isEOF), str) ) {
-		isCrashFlag = parseString(str, &varList);		//здесь же выводится ответ
+	int is_eof = 0;
+	char* str = NULL;
+	DynDict* var_list = init_dynamic_dict();
+	int was_crash = OK;
+
+	while (!is_eof && (str = get_next_input_string(f,&is_eof), str) ) {
+		was_crash = parse_string(str, &var_list);		//здесь же выводится ответ
 		free(str);
 		str = NULL;
-		if (isCrashFlag == ERROR) { break; }
+		if (was_crash == ERROR) { break; }
 	}
-	if (isCrashFlag == ERROR) {
-		printf("%s", errorMessage);
+	if (was_crash == ERROR) {
+		printf("%s", ERROR_MESSAGE);
 	}
-	freeDynamicDict(varList);
+	free_dynamic_dict(var_list);
 	if (f) { fclose(f); }
+
 	return 0;
 }
 
-char* getNextInputString(FILE* const flow, int* isEOF) {
-	DynString* buf = initDynamicString();
-	if (!buf) {
-		freeDynamicString(buf);
-		return NULL;
-	}
-	if (!flow) {
-		freeDynamicString(buf);
-		return NULL;
-	}
-	char c = '0';
+char* get_next_input_string(FILE* const flow, int* is_eof) {
+	if (!flow) { return NULL; }
+
+	DynString* buf = init_dynamic_string();		//буфер ввода
+	if (!buf) { return NULL; }
+
+	char c = '\0';
 	while (c = (char)fgetc(flow), c != '\n' && c != EOF) {
-		if (ERROR == append(buf, c))
+		if (ERROR == append_string(buf, c))
 		{
-			freeDynamicString(buf);
+			free_dynamic_string(buf);
 			return NULL;
 		}
 	}
-	if (ERROR == append(buf, '\0')) {
-		freeDynamicString(buf);
+	if (ERROR == append_string(buf, '\0')) {
+		free_dynamic_string(buf);
 		return NULL;
 	}
-	if (ERROR == truncDynString(buf)) {
-		freeDynamicString(buf);
+	if (ERROR == trunc_dynamic_string(buf)) {
+		free_dynamic_string(buf);
 		return NULL;
 	}
-	if (c == EOF) {
-		*isEOF = !(*isEOF);
+	if (EOF == c) {
+		*is_eof = !(*is_eof);
 	}
 	char* tempPointer = buf->data;
 	free(buf);
@@ -142,128 +150,159 @@ char* getNextInputString(FILE* const flow, int* isEOF) {
 }
 
 //-------Problem solving functions------
-int eatChars(int index, const int maxIndex, const char* const s, const char food) {
-	if (!s) {
-		return ERROR;
-	}
-	while (index < maxIndex && s[index] == food) {
+
+//  Функция сдвигает маркер, пока не встретит заданный символ
+int eat_chars(int index, const int border_index, const char* const s, const char food) {
+	if (!s) { return ERROR; }
+
+	while (index < border_index && s[index] == food) {
 		index++;
 	}
 	return index;
 }
 
-int parseString(const char* const s, DynDict** const varList) {
-	char* indexEqualsPtr = strchr(s, '=');
-	if (indexEqualsPtr == NULL) {
-		//строка с выражением, либо ошибочная
-		DynString* backPolandNotation = NULL;
-		if (parseExpression(s, *varList, &backPolandNotation) == ERROR) {
-			freeDynamicString(backPolandNotation);
+//	Анализирует и обрабатывает входные строки
+int parse_string(const char* const s, DynDict** const var_list) {
+	char* index_equal_ptr = strchr(s, '=');
+	if (index_equal_ptr == NULL) {
+		//строка с выражением либо ошибочная
+		DynString* back_poland_notation = NULL;
+		if (ERROR == parse_expression(s, *var_list, &back_poland_notation)) {
+			free_dynamic_string(back_poland_notation);
 			return ERROR;
 		}
-		int answer = calculateExpresson(backPolandNotation);
-		if (answer == ERROR || answer < 0 || answer > 1) {
-			freeDynamicString(backPolandNotation);
+
+		int answer = calculate_expression(back_poland_notation);
+		if (ERROR == answer || answer < 0 || answer > 1) {
+			free_dynamic_string(back_poland_notation);
 			return ERROR;
 		}
 
 		//-------Answer-----------------------
-		printf("%s\n", boolConstants[answer]);
+		printf("%s\n", BOOL_CONSTANTS[answer]);
 		//------------------------------------
 
-		if (backPolandNotation) {
-			if (freeDynamicString(backPolandNotation) == ERROR) {
+		if (back_poland_notation) {
+			if (ERROR == free_dynamic_string(back_poland_notation)) {
 				return ERROR;
 			}
 		}
 	}
 	else {
 		//если строка верна, в ней - определение переменной
-		char* varName = NULL;
+		char* var_name = NULL;
 		int varValue = ERROR;
-		int index = (int)(indexEqualsPtr - s);	//номер в строке знака '='
-		indexEqualsPtr = NULL;
-		if (parseManifestation(s, index, &varName, &varValue) == ERROR) {
-			if (varName) { free(varName); }
+		int index = (int)(index_equal_ptr - s);	//номер в строке знака '='
+
+		if (ERROR == parse_variable_definition(s, index, &var_name, &varValue)) {
+			if (var_name) { free(var_name); }
 			return ERROR;
 		}
-		int pos = findInArray(varName, (const char**)(*varList)->str, (*varList)->dataSize);
+		int pos = find_string_in_array(var_name, (const char**)(*var_list)->str, (*var_list)->dataSize);
 		if (pos < 0) {		//новая переменная
-			appendDict(*varList, varName, varValue);
+			append_dict(*var_list, var_name, varValue);
 		}
 		else {				//переопределение существующей переменной
-			(*varList)->values[pos] = varValue;
-			if (varName) { free(varName); }
+			(*var_list)->values[pos] = varValue;
+			if (var_name) { free(var_name); }
 		}
-		varName = NULL;
+		var_name = NULL;
 	}
 	return OK;
 }
 
-int parseManifestation(const char* const s, const int indexEq, char** variableName, int* variableValue) {
+//	Обрабатывает определения переменных
+int parse_variable_definition(const char* const s, const int index_equal, 
+							char** variable_name, int* variableValue) {
 	const int reservedWordsCount = 6;
 	const char* reservedWords[] = { "and", "or", "not", "xor", "False", "True" };
 
-	DynString* varName = initDynamicString();
+	DynString* var_name = init_dynamic_string();
+	if (!var_name) { return ERROR; }
 	unsigned int varValue = 0;
 	int j = 0;		//текущий индекс в строке
 	int sLen = strlen(s);
 	if (sLen < 0) {
-		freeDynamicString(varName);
+		free_dynamic_string(var_name);
 		return ERROR;
 	}
 
-	j = eatChars(j, indexEq, s, ' ');		//движемся к первой букве
+	j = eat_chars(j, index_equal, s, ' ');		//движемся к первой букве
 	//собираем слово-название до знака равенства
-	while (j < indexEq && isLetter(s[j])) {
-		if (append(varName, s[j]) == OK)
+	while (j < index_equal && is_letter(s[j])) {
+		if (append_string(var_name, s[j]) == OK)
 			j++;
-		else
+		else {
+			free_dynamic_string(var_name);
 			return ERROR;
+		}			
 	}
-	if (varName->dataSize == 0) {
-		freeDynamicString(varName);
+	if (var_name->dataSize == 0) {
+		free_dynamic_string(var_name);
 		return ERROR;
 	}
-	append(varName, '\0');;
-	if (findInArray(varName->data, reservedWords, reservedWordsCount) >= 0) {
-		freeDynamicString(varName);
+	if (ERROR == append_string(var_name, '\0')) {
+		free_dynamic_string(var_name);
 		return ERROR;
 	}
-	j = eatChars(j, indexEq, s, ' ');	//движемся к знаку равно
-	if (j == indexEq) { j++; }			//пропускаем знак равно
+	if (find_string_in_array(var_name->data, reservedWords, reservedWordsCount) >= 0) {
+		free_dynamic_string(var_name);
+		return ERROR;
+	}
+	j = eat_chars(j, index_equal, s, ' ');	//движемся к знаку равно
+	if (j == index_equal) { j++; }			//пропускаем знак равно
 	else {
-		freeDynamicString(varName);
+		free_dynamic_string(var_name);		//если м/у названием перем. и '=' есть символы
 		return ERROR;
 	}
-	j = eatChars(j, sLen, s, ' ');		//движемся к определителю переменной
-	DynString* valueName = initDynamicString();
-	while (j < sLen && isLetter(s[j])) {	//собираем имя определителя
-		append(valueName, s[j]);
+	j = eat_chars(j, sLen, s, ' ');		//движемся к определителю переменной
+
+	DynString* value_name = init_dynamic_string();
+	if (!value_name) {
+		free_dynamic_string(var_name);
+		return ERROR;
+	}
+	while (j < sLen && is_letter(s[j])) {	//собираем имя определителя
+		if (ERROR == append_string(value_name, s[j]))
+		{
+			free_dynamic_string(var_name);
+			free_dynamic_string(value_name);
+			return ERROR;
+		}
 		j++;
 	}
-	append(valueName, '\0');
-	int ind = findInArray(valueName->data, boolConstants, 2);
-	freeDynamicString(valueName);
+	if (ERROR == append_string(value_name, '\0'))
+	{
+		free_dynamic_string(var_name);
+		free_dynamic_string(value_name);
+		return ERROR;
+	}
+	int ind = find_string_in_array(value_name->data, BOOL_CONSTANTS, 2);
 	if (ind == ERROR) {
-		freeDynamicString(varName);
+		free_dynamic_string(var_name);
 		return ERROR;
 	}
-	else {
-		varValue = ind;		//False = 0, True = 1
+	varValue = ind;		//False = 0, True = 1
+
+	if (ERROR == free_dynamic_string(value_name)) {
+		free_dynamic_string(var_name);
+		return ERROR;
 	}
-	j = eatChars(j, sLen, s, ' ');		//Движемся до ';'
+
+	j = eat_chars(j, sLen, s, ' ');		//Движемся до ';'
 	if (j < sLen - 2) {		//если указатель стоит раньше последнего значащего символа
-		freeDynamicString(varName);
+		free_dynamic_string(var_name);
 		return ERROR;
 	}
-	*variableName = varName->data;
-	free(varName);
+	*variable_name = var_name->data;
+	free(var_name);
 	*variableValue = varValue;
 	return OK;
 }
 
-int parseExpression(const char* const s, const DynDict* const varList, DynString** backPolandNotation) {
+//	Обрабатывает логические выражения
+int parse_expression(const char* const s, const DynDict* const var_list, 
+						DynString** back_poland_notation) {
 	const char* operatorNamesList[] = { "and", "or", "not", "xor", "(", ")" };
 	const int operatorsCount = 4;
 	const char operatorShortcuts[] = { '*', '+', '~', '^' };
@@ -271,140 +310,184 @@ int parseExpression(const char* const s, const DynDict* const varList, DynString
 						//	   ?  *  +  ^  ~  (  )
 	const char operList[] = "?*+^~()";
 
-	if (!s || !varList) { return ERROR; }
+	if (!s || !var_list || !back_poland_notation) {
+		return ERROR; 
+	}
 
-	DynString* stack = initDynamicString();
-	append(stack, '?');		// '?' имеет низший приоритет, проще обрабатывать конец стека
-	DynString* output = initDynamicString();
-	DynString* val = initDynamicString();
+	DynString* stack = init_dynamic_string();
+	if (!stack) { return ERROR; }
+
+	if (ERROR == append_string(stack, '?')) {	// '?' имеет низший приоритет, проще обрабатывать конец стека
+		free_dynamic_string(stack);
+		return ERROR;
+	}
+
+	DynString* output = init_dynamic_string();
+	if (!output) { 
+		free_dynamic_string(stack);
+		return ERROR; 
+	}
+	DynString* val = init_dynamic_string();
+	if (!val) { 
+		free_dynamic_string(stack);
+		free_dynamic_string(output);
+		return ERROR; 
+	}
+
 	int strLen = strlen(s);
 	int j = 0;
-	int isCrashFlag = OK;
+	int was_crash = OK;
 	for (; j<=strLen; j++) {
-		if (isLetter(s[j])) {
-			append(val, s[j]);
+		if (is_letter(s[j])) {
+			if (ERROR == append_string(val, s[j])) {
+				was_crash = ERROR;
+				break;
+			}
 		}
 		else {
 			if(val->dataSize > 0){
-				append(val, '\0');
-				//Что за слово получено?
+				if (ERROR == append_string(val, '\0')) {
+					was_crash = ERROR;
+					break;
+				}
+				//Что за слово собрали?
 
 				//1) Переменная?
-				int index = findInArray(val->data, (const char**)varList->str, varList->dataSize);
+				int index = find_string_in_array(val->data, (const char**)var_list->str, 
+																	var_list->dataSize);
 				if (index >= 0) {
-					append(output, (char)varList->values[index] + '0');
+					if (ERROR == append_string(output, (char)var_list->values[index] + '0')) {
+						was_crash = ERROR;
+						break;
+					}
 				} 
 				//2) Константа?
-				else if (strcmp("True", val->data) == 0) {
-					append(output, '1');
+				else if (strcmp(BOOL_CONSTANTS[0], val->data) == 0) {
+					if (ERROR == append_string(output, '0')) {
+						was_crash = ERROR;
+						break;
+					}
 				}
-				else if (strcmp("False", val->data) == 0) {
-					append(output, '0');
+				else if (strcmp(BOOL_CONSTANTS[1], val->data) == 0) {
+					if (ERROR == append_string(output, '1')) {
+						was_crash = ERROR;
+						break;
+					}
 				}
 				//3) Оператор (буквенный)?
 				else {
-					index = findInArray(val->data, operatorNamesList, operatorsCount);
+					index = find_string_in_array(val->data, operatorNamesList, 
+															operatorsCount);
 					if (index < 0) {
-						isCrashFlag = ERROR;
+						was_crash = ERROR;
 						break;
 					}
 					//обрабатываем оператор
 					char oper = operatorShortcuts[index];
 					char temp = pop(stack);
 					if (!temp) {
-						isCrashFlag = ERROR;
+						was_crash = ERROR;
 						break;
 					}
 					int tempIndex = (int)(strchr(operList, temp) - operList);
 					index = (int)(strchr(operList, oper) - operList);
 
 					while (operRates[index] <= operRates[tempIndex]) {
-						append(output, temp);
+						was_crash = append_string(output, temp);
+						if (ERROR == was_crash) break;
 						temp = pop(stack);
 						if (!temp) {
-							isCrashFlag = ERROR;
+							was_crash = ERROR;
 							break;
 						}
 						tempIndex = (int)(strchr(operList, temp) - operList);
 					}
-					append(stack, temp);
-					append(stack, oper);
+					if (ERROR == was_crash) break;
+					was_crash = append_string(stack, temp);
+					was_crash = append_string(stack, oper);
+					if (ERROR == was_crash) break;
 				}
 				val->dataSize = 0;
 			}
-
 			//что за символ попался?
 			if (s[j] == '(') {
-				append(stack, s[j]);
+				was_crash = append_string(stack, s[j]);
 			}
 			else if (s[j] == ')') {
 				char temp;
 				while (temp = pop(stack), temp!= '\0' && temp != '(') {
-					append(output, temp);
+					was_crash = append_string(output, temp);
 				}
-				if (!temp) {
-					isCrashFlag = ERROR;
+				if (!temp || ERROR == was_crash) {
+					was_crash = ERROR;
 					break;
 				}
 			}
 			else if (s[j] != ' ' && s[j] != '\0') {
-				isCrashFlag = ERROR;
+				was_crash = ERROR;
 				break;
 			}
 			//если пробел - идём дальше
 		}
 	}
-	freeDynamicString(val);
-	val = NULL;
-	if (isCrashFlag == OK) {
-		while (stack->dataSize > 1) {
-			//в стеке должны остаться только операторы
-			char temp = pop(stack);
-			if (!temp) {
-				isCrashFlag = ERROR;
-				break;
-			}
-			//нижеперечисленных символов быть не должно
-			else if (temp == '(' || temp == ')' || isNumber(temp) == OK) {
-				isCrashFlag = ERROR;
-				break;
-			}
-			/*else if (temp >= '0' && temp <= '9') {
-				isCrashFlag = ERROR;
-				break;
-			}*/
-			append(output, temp);
-		}
+	if (ERROR == was_crash) {
+		free_dynamic_string(stack);
+		free_dynamic_string(output);
+		free_dynamic_string(val);
+		return ERROR;
 	}
-	if (isCrashFlag == OK) {
-		*backPolandNotation = output;
+	if (ERROR == free_dynamic_string(val)) {
+		free_dynamic_string(stack);
+		free_dynamic_string(output);
+		return ERROR;
+	}
+	val = NULL;
+	while (stack->dataSize > 1) {
+		//в стеке должны остаться только операторы
+		char temp = pop(stack);
+		if (!temp) {
+			was_crash = ERROR;
+			break;
+		}
+		//нижеперечисленных символов быть не должно
+		else if (temp == '(' || temp == ')' || is_number(temp) == 1) {
+			was_crash = ERROR;
+			break;
+		}
+		was_crash = append_string(output, temp);
+		if (ERROR == was_crash) break;
+	}
+	if (was_crash == OK) {
+		*back_poland_notation = output;
 	}
 	else {
-		freeDynamicString(output);
+		free_dynamic_string(output);
 	}
-	if (freeDynamicString(stack) == ERROR) {
-		isCrashFlag = ERROR;
+	if (free_dynamic_string(stack) == ERROR) {
+		was_crash = ERROR;
 	}
-	return isCrashFlag;
+	return was_crash;
 }
 
-int calculateExpresson(DynString* const s) {
+int calculate_expression(DynString* const s) {
 	if (!s) { return ERROR; }
 
-	DynString* stack = initDynamicString();
-	int isCrashFlag = OK;
+	DynString* stack = init_dynamic_string();
+	int was_crash = OK;
 	for (unsigned int i = 0; i < s->dataSize; i++) {
 		if (s->data[i] >= '0' && s->data[i] <= '9') {
-			append(stack, s->data[i]);
+			was_crash = append_string(stack, s->data[i]);
+			if (ERROR == was_crash) break;
 		}
 		else {
 			if (stack->dataSize == 0) {
-				isCrashFlag = ERROR;
+				was_crash = ERROR;
 				break;
 			}
 			char a = pop(stack) - '0';
 			if (s->data[i] == '~') {
-				append(stack, '0' + (!a));
+				was_crash = append_string(stack, '0' + (!a));
+				if (was_crash) break;
 			}
 			else {
 				char b = pop(stack) - '0';
@@ -419,26 +502,26 @@ int calculateExpresson(DynString* const s) {
 					a = a ^ b;
 					break;
 				default:
-					isCrashFlag = ERROR;
-					break;
+					was_crash = ERROR;
 				}
-				append(stack, '0' + a);
+				if (ERROR == was_crash) break;
+				append_string(stack, '0' + a);
 			}
 		}
 	}
 	int ans = ERROR;
-	if (isCrashFlag == OK) {
+	if (OK == was_crash) {
 		ans = pop(stack) - '0';
 		if (stack->dataSize != 0 || (ans < 0 || ans > 1)) {
 			ans = ERROR;
 		}
 	}
-	freeDynamicString(stack);
+	free_dynamic_string(stack);
 	return ans;
 }
 
 //-----Dynamic Array Implementation-----------
-int append(DynString* const buf, const char data) {
+int append_string(DynString* const buf, const char data) {
 	if (!buf) { return ERROR; }
 
 	const int strSizeFactor = 2;
@@ -456,7 +539,7 @@ int append(DynString* const buf, const char data) {
 	return OK;
 }
 
-int appendDict(DynDict* const buf, char* const str, const int val) {
+int append_dict(DynDict* const buf, char* const str, const int val) {
 	if (!buf) { return ERROR; }
 	const int strSizeFactor = 2;
 	if ((buf->dataSize + 1) > buf->spaceSize) {		//current + zero-symbol
@@ -464,7 +547,7 @@ int appendDict(DynDict* const buf, char* const str, const int val) {
 		char** tempStr = (char**)realloc(buf->str, newBufferSize * sizeof(char*));
 		int* tempInt = (int*)realloc(buf->values, newBufferSize * sizeof(int));
 		if (!tempStr || !tempInt) {
-			freeDynamicDict(buf);
+			free_dynamic_dict(buf);
 			return ERROR;
 		}
 		buf->str = tempStr;
@@ -484,51 +567,43 @@ char pop(DynString* const buf) {
 	return buf->data[--(buf->dataSize)];
 }
 
-int isEmpty(const DynString* const stack) {
+int free_dynamic_string(DynString* const stack) {
 	if (!stack) { return ERROR; }
-
-	if (stack->dataSize == 0) {
-		return ERROR;
-	}
-	else {
-		return OK;
-	}
-}
-
-int freeDynamicString(DynString* const stack) {
-	if (!stack) { return ERROR; }
-
-	free(stack->data);
+	if(stack->data)
+		free(stack->data);
 	free(stack);
 	return OK;
 }
 
-int freeDynamicDict(DynDict* const dict) {
+int free_dynamic_dict(DynDict* const dict) {
 	if (!dict) { return ERROR; }
-	for (unsigned int i = 0; i < dict->dataSize; i++) {
-		free(dict->str[i]);
+	if (dict->str) {
+		for (unsigned int i = 0; i < dict->dataSize; i++) {
+			free(dict->str[i]);
+		}
+		free(dict->str);
 	}
-	free(dict->str);
-	free(dict->values);
+	if(dict->values)
+		free(dict->values);
 	free(dict);
 	return OK;
 }
 
-int truncDynString(DynString* const dyn_array) {
-	if (!dyn_array) { return ERROR; }
-	if (dyn_array->dataSize < dyn_array->spaceSize) {
-		char* temp = (char*)realloc(dyn_array->data, dyn_array->dataSize * sizeof(char));
-		if (!temp && dyn_array->dataSize != 0) {
+int trunc_dynamic_string(DynString* const dynamic_array) {
+	if (!dynamic_array) { return ERROR; }
+	if (dynamic_array->dataSize < dynamic_array->spaceSize) {
+		char* temp = (char*)realloc(dynamic_array->data, dynamic_array->dataSize * sizeof(char));
+		if (!temp && dynamic_array->dataSize != 0) {
 			return ERROR;
 		}
-		dyn_array->data = temp;
-		dyn_array->spaceSize = dyn_array->dataSize;
+		dynamic_array->data = temp;
+		dynamic_array->spaceSize = dynamic_array->dataSize;
 		return OK;
 	}
 	return OK;
 }
 
-DynString* initDynamicString(void) {
+DynString* init_dynamic_string(void) {
 	DynString* arr = (DynString*)malloc(sizeof(DynString));
 	if (!arr) { return NULL; }
 	arr->data = NULL;
@@ -537,7 +612,7 @@ DynString* initDynamicString(void) {
 	return arr;
 }
 
-DynDict* initDynamicDict(void) {
+DynDict* init_dynamic_dict(void) {
 	DynDict* arr = (DynDict*)malloc(sizeof(DynDict));
 	if (!arr) { return NULL; }
 	arr->str = NULL;
@@ -547,7 +622,7 @@ DynDict* initDynamicDict(void) {
 	return arr;
 }
 
-int isLetter(const char c) {
+int is_letter(const char c) {
 	if (c >= 'A' && c <= 'z') {
 		return 1;
 	}
@@ -556,20 +631,20 @@ int isLetter(const char c) {
 	}
 }
 
-int isNumber(const char c) {
+int is_number(const char c) {
 	if (c >= '0' && c <= '9') {
-		return OK;
+		return 1;
 	}
 	else {
-		return ERROR;
+		return 0;
 	}
 }
 
-int findInArray(const char* const what, const char** where, const int whereLen) {
-	if (whereLen <= 0) { return ERROR; }
+int find_string_in_array(const char* const what, const char** where, const int where_len) {
+	if (where_len <= 0) { return ERROR; }
 	if (!what || !where || !(*where)) { return ERROR; }
 
-	for (int j = 0; j < whereLen; j++) {
+	for (int j = 0; j < where_len; j++) {
 		if (strcmp(what, where[j]) == 0) {
 			return j;
 		}
